@@ -25,13 +25,18 @@ namespace ConsoleCSOM
                 //myField.Required = false;
                 //myField.Update();
                 await ctx.ExecuteQueryAsync();
-                ListItemCreationInformation oListItemCreationInformation = new ListItemCreationInformation();
-                ListItem oItem = existedList.AddItem(oListItemCreationInformation);
-                oItem["Title"] = $"Test ";
-                oItem["about"] = $"test ";
-                oItem.Update();
+                for(int i = 0; i < 4; i ++)
+                {
+                    ListItemCreationInformation oListItemCreationInformation = new ListItemCreationInformation();
+                    ListItem oItem = existedList.AddItem(oListItemCreationInformation);
+                    var formValues = new List<ListItemFormUpdateValue>();
+                    formValues.Add(new ListItemFormUpdateValue() { FieldName = "Title", FieldValue = $"test {i}" });
+                    formValues.Add(new ListItemFormUpdateValue() { FieldName = "aboutCT", FieldValue = $"about test {i}" });
+                    formValues.Add(new ListItemFormUpdateValue() { FieldName = "cityInfo", FieldValue = $"city test {i}" });
+                    oItem.ValidateUpdateListItem(formValues, true, string.Empty, true, true);
+                    oItem.Update();
+                }
                 existedList.Update();
-
                 await ctx.ExecuteQueryAsync();
                 //CreateCSOMTestList(ctx);
                 //TaxonomySession session = TaxonomySession.GetTaxonomySession(ctx);
