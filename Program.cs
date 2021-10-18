@@ -18,25 +18,7 @@ namespace ConsoleCSOM
             {
                 ClientContext ctx = GetContext(clientContextHelper);
                 _services = new SharePointServices(ctx);
-                var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
-                //ctx.Load(ctx.Web, w => w.Fields);
-                //await ctx.ExecuteQueryAsync();
-                //var myField = ctx.Web.Fields.Where(x => x.Title.Equals("city")).FirstOrDefault();
-                //myField.Required = false;
-                //myField.Update();
-                await ctx.ExecuteQueryAsync();
-                for(int i = 0; i < 4; i ++)
-                {
-                    ListItemCreationInformation oListItemCreationInformation = new ListItemCreationInformation();
-                    ListItem oItem = existedList.AddItem(oListItemCreationInformation);
-                    var formValues = new List<ListItemFormUpdateValue>();
-                    formValues.Add(new ListItemFormUpdateValue() { FieldName = "Title", FieldValue = $"test {i}" });
-                    formValues.Add(new ListItemFormUpdateValue() { FieldName = "aboutCT", FieldValue = $"about test {i}" });
-                    formValues.Add(new ListItemFormUpdateValue() { FieldName = "cityInfo", FieldValue = $"city test {i}" });
-                    oItem.ValidateUpdateListItem(formValues, true, string.Empty, true, true);
-                    oItem.Update();
-                }
-                existedList.Update();
+                await CreateMyItems(ctx);
                 await ctx.ExecuteQueryAsync();
                 //CreateCSOMTestList(ctx);
                 //TaxonomySession session = TaxonomySession.GetTaxonomySession(ctx);
@@ -56,6 +38,38 @@ namespace ConsoleCSOM
 
             Console.WriteLine($"Press Any Key To Stop!");
             Console.ReadKey();
+        }
+
+        private static async Task SetDefaultValueToMyList(ClientContext ctx)
+        {
+            var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
+            ctx.Load(existedList.ContentTypes);
+            await ctx.ExecuteQueryAsync();
+            var myContentType = existedList.ContentTypes.Where(x => x.Name.Equals("CSOM Test content type")).FirstOrDefault();
+            ctx.Load(myContentType.Fields);
+            await ctx.ExecuteQueryAsync();
+            var about = myContentType.Fields.Where(x => x.Title.Equals("about")).FirstOrDefault();
+            about.DefaultValue = "my default";
+            about.Update();
+            myContentType.Update(false);
+            existedList.Update();
+        }
+
+        private static async Task CreateMyItems(ClientContext ctx)
+        {
+            var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
+            await ctx.ExecuteQueryAsync();
+            for (int i = 0; i < 2; i++)
+            {
+                ListItemCreationInformation oListItemCreationInformation = new ListItemCreationInformation();
+                ListItem oItem = existedList.AddItem(oListItemCreationInformation);
+                var formValues = new List<ListItemFormUpdateValue>();
+                formValues.Add(new ListItemFormUpdateValue() { FieldName = "Title", FieldValue = $"test default {i}" });
+                //formValues.Add(new ListItemFormUpdateValue() { FieldName = "cityInfo", FieldValue = $"city test {i}" });
+                oItem.ValidateUpdateListItem(formValues, true, string.Empty, true, true);
+                oItem.Update();
+            }
+            existedList.Update();
         }
 
         private static async Task SetMyContentTypeAsDefault(ClientContext ctx)
@@ -92,6 +106,8 @@ namespace ConsoleCSOM
             info.Field = ctx.Web.Fields.Where(x => x.Title.Equals("city")).FirstOrDefault();
             myContentType.FieldLinks.Add(info);
             existedList.ContentTypes.AddExistingContentType(myContentType);
+            myContentType.Update(true);
+            existedList.Update();
         }
 
         private static async Task CreateCustomContentType(ClientContext ctx)
