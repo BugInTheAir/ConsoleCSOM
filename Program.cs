@@ -18,7 +18,7 @@ namespace ConsoleCSOM
             {
                 ClientContext ctx = GetContext(clientContextHelper);
                 _services = new SharePointServices(ctx);
-                await CreateMyItems(ctx);
+                await AddAuthorFieldToMyList(ctx);
                 await ctx.ExecuteQueryAsync();
                 //CreateCSOMTestList(ctx);
                 //TaxonomySession session = TaxonomySession.GetTaxonomySession(ctx);
@@ -40,16 +40,102 @@ namespace ConsoleCSOM
             Console.ReadKey();
         }
 
+        private static async Task UpdateAboutDefaultValue(ClientContext ctx)
+        {
+            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
+            var items = await MyAboutViewCAML(ctx);
+            foreach (var item in items)
+            {
+                if ((string)item["aboutCT"] == "about default")
+                {
+                    item["aboutCT"] = "Update script";
+                    item.Update();
+                }
+            }
+        }
+        private static async Task SetDefaultValueToTaxonomyTerm(ClientContext context)
+        {
+            string termLabel = "Default term";
+            Guid termId = new Guid("{a8cb8104-8c93-4cbd-8486-bd4d902673b3}");
+            var field = context.Web.Fields.GetByTitle(Constants.CITY);
+
+            TaxonomyField taxonomyField = context.CastTo<TaxonomyField>(field);
+            context.Load(taxonomyField, t => t.DefaultValue);
+            context.ExecuteQuery(); // Get the Taxonomy Field
+
+            TaxonomyFieldValue defaultValue = new TaxonomyFieldValue();
+            defaultValue.WssId = -1;
+            defaultValue.Label = termLabel;
+            // GUID should be stored lowercase, otherwise it will not work in Office 2010
+            defaultValue.TermGuid = termId.ToString();
+
+            // Get the Validated String for the taxonomy value
+            var validatedValue = taxonomyField.GetValidatedString(defaultValue);
+            await context.ExecuteQueryAsync();
+
+            // Set the selected default value for the site column
+            taxonomyField.DefaultValue = validatedValue.Value;
+            taxonomyField.UserCreated = false;
+            taxonomyField.UpdateAndPushChanges(true);
+            await context.ExecuteQueryAsync();
+        }
+        private static async Task CreateMyOrderCreatedByDateView(ClientContext ctx)
+        {
+            var list = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
+            var myQuery = @"<View>
+                                <Query>
+                                    <OrderBy><FieldRef Name='Created' Ascending='FALSE'/></OrderBy>
+                                    <Where>
+                                      <Contains>
+                                          <FieldRef Name='cityInfo' />
+                                          <Value Type='Text'>Ho Chi Minh</Value>
+                                      </Contains>
+                                    </Where>
+                                </Query>
+                            </View>";
+            string[] myViewFields = {Constants.CITY,Constants.ABOUT, Constants.TITLE};
+            ViewCreationInformation creationInformation = new ViewCreationInformation()
+            {
+                Title = Constants.MY_VIEW_TITLE,
+                ViewTypeKind = ViewType.Grid,
+                Query = myQuery,
+                ViewFields = myViewFields
+            };
+            list.Views.Add(creationInformation);
+            await ctx.ExecuteQueryAsync();
+        }
+
+        private static async Task<ListItemCollection> MyAboutViewCAML(ClientContext ctx)
+        {
+            var list = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
+            var items = list.GetItems(new CamlQuery()
+            {
+                ViewXml = @"<View>
+                                <Query>
+                                    <Where>
+                                         <Eq>
+                                            <FieldRef Name=""aboutCT""></FieldRef>
+                                            <Value Type=""Text"">about default</Value>
+                                          </Eq>
+                                  </Where>
+                                </Query>
+                            </View>"
+            });
+            ctx.Load(items);
+            await ctx.ExecuteQueryAsync();
+            return items;
+        }
+
         private static async Task SetDefaultValueToMyList(ClientContext ctx)
         {
-            var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
+            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
             ctx.Load(existedList.ContentTypes);
             await ctx.ExecuteQueryAsync();
-            var myContentType = existedList.ContentTypes.Where(x => x.Name.Equals("CSOM Test content type")).FirstOrDefault();
+            var myContentType = existedList.ContentTypes.Where(x => x.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE)).FirstOrDefault();
             ctx.Load(myContentType.Fields);
             await ctx.ExecuteQueryAsync();
             var about = myContentType.Fields.Where(x => x.Title.Equals("about")).FirstOrDefault();
-            about.DefaultValue = "my default";
+            about.DefaultValue = "about default";
             about.Update();
             myContentType.Update(false);
             existedList.Update();
@@ -57,7 +143,7 @@ namespace ConsoleCSOM
 
         private static async Task CreateMyItems(ClientContext ctx)
         {
-            var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
+            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
             await ctx.ExecuteQueryAsync();
             for (int i = 0; i < 2; i++)
             {
@@ -74,14 +160,14 @@ namespace ConsoleCSOM
 
         private static async Task SetMyContentTypeAsDefault(ClientContext ctx)
         {
-            var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
+            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
             var currentOrder = existedList.ContentTypes;
             ctx.Load(currentOrder);
             await ctx.ExecuteQueryAsync();
             IList<ContentTypeId> reverseOrder = new List<ContentTypeId>();
             foreach (var type in currentOrder)
             {
-                if (type.Name.Equals("CSOM Test content type"))
+                if (type.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE))
                 {
                     reverseOrder.Add(type.Id);
                 }
@@ -91,14 +177,26 @@ namespace ConsoleCSOM
             existedList.RootFolder.Update();
             existedList.Update();
         }
-
+        private static async Task AddAuthorFieldToMyList(ClientContext ctx)
+        {
+            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
+            ctx.Load(existedList,e => e.ContentTypes, e => e.Fields);
+            var contentCollection = existedList.ContentTypes;
+            await ctx.ExecuteQueryAsync();
+            var myContentType = contentCollection.Where(x => x.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE)).FirstOrDefault();
+            FieldLinkCreationInformation info = new FieldLinkCreationInformation();
+            info.Field = existedList.Fields.Where(x => x.Title.Equals("Author_")).FirstOrDefault();
+            myContentType.FieldLinks.Add(info);
+            myContentType.Update(false);
+            existedList.Update();
+        }
         private static async Task AddContentTypeToMyList(ClientContext ctx)
         {
             ctx.Load(ctx.Web, w => w.Fields, w => w.ContentTypes);
-            var existedList = ctx.Web.Lists.GetByTitle("CSOM Test");
+            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
             var contentCollection = ctx.Web.ContentTypes;
             await ctx.ExecuteQueryAsync();
-            var myContentType = contentCollection.Where(x => x.Name.Equals("CSOM Test content type")).FirstOrDefault();
+            var myContentType = contentCollection.Where(x => x.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE)).FirstOrDefault();
             FieldLinkCreationInformation info = new FieldLinkCreationInformation();
             info.Field = ctx.Web.Fields.Where(x => x.Title.Equals("about")).FirstOrDefault();
             myContentType.FieldLinks.Add(info);
@@ -119,7 +217,7 @@ namespace ConsoleCSOM
             ContentTypeCreationInformation oContentTypeCreationInformation = new ContentTypeCreationInformation();
 
             // Name of the new content type
-            oContentTypeCreationInformation.Name = "CSOM Test content type";
+            oContentTypeCreationInformation.Name = Constants.CSOM_TEST_CONTENT_TYPE;
 
             // Description of the new content type
             oContentTypeCreationInformation.Description = "My custom content type created by csom";
@@ -132,7 +230,7 @@ namespace ConsoleCSOM
 
             // Add "ContentTypeCreationInformation" object created above
             ContentType oContentType = contentCollection.Add(oContentTypeCreationInformation);
-            
+
         }
 
         private static void CreateCityField(ClientContext ctx)
@@ -151,6 +249,25 @@ namespace ConsoleCSOM
 </Field>
 
                 ", true, AddFieldOptions.DefaultValue);
+        }
+        private static async Task CreateAuthorField(ClientContext ctx)
+        {
+            ctx.Web.Fields.AddFieldAsXml($@"<Field
+  Type=""User""
+  DisplayName = ""Author_""
+  List = ""UserInfo""
+  Required = ""FALSE""
+  EnforceUniqueValues = ""FALSE""
+  ShowField = ""ImnName""
+  UserSelectionMode = ""PeopleOnly""
+  UserSelectionScope = ""0""
+  ID = ""{Guid.NewGuid().ToString()}""
+  StaticName = ""Author""
+  ShowInEditForm = ""FALSE""
+  ShowInNewForm = ""FALSE""
+  Name = ""{Constants.AUTHOR_FIELD_NAME}"" >
+</Field> ", true, AddFieldOptions.DefaultValue);
+            await ctx.ExecuteQueryAsync();
         }
         private static void CreateAboutField(ClientContext ctx)
         {
@@ -183,7 +300,7 @@ namespace ConsoleCSOM
 
         private static void CreateCSOMTestList(ClientContext ctx)
         {
-            _services.CreateList("CSOM Test");
+            _services.CreateList(Constants.CSOM_TEST);
         }
 
         static ClientContext GetContext(ClientContextHelper clientContextHelper)
