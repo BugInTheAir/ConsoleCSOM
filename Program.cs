@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.SharePoint.Client.Taxonomy;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace ConsoleCSOM
 {
@@ -16,24 +17,23 @@ namespace ConsoleCSOM
         {
             using (var clientContextHelper = new ClientContextHelper())
             {
+                ContentTypeHelper contentTypeHelper = new ContentTypeHelper();
                 ClientContext ctx = GetContext(clientContextHelper);
                 _services = new SharePointServices(ctx);
-                await AddAuthorFieldToMyList(ctx);
-                await ctx.ExecuteQueryAsync();
-                //CreateCSOMTestList(ctx);
-                //TaxonomySession session = TaxonomySession.GetTaxonomySession(ctx);
-                //TermStore termStore = session.GetDefaultSiteCollectionTermStore();
-                //TermGroup termGroup = termStore.Groups.GetByName("People");
+                var existedList = GetMyList(ctx);
+                //SetDefaultValueToTaxonomyCities(ctx);
+                //var myTerm = _services.GetTermSetByName(Constants.MY_TERM_SET_NAME, _services.GetTermGroupByName(Constants.MY_TERM_GROUP));
+                //ctx.Load(myTerm, term => term.Terms);
+               
+                
+                
 
-                //ctx.Load(termGroup, tg => tg.TermSets);
-                //ctx.ExecuteQuery();
-                //await _services.SaveContextAsync();
+                
+                
+                await _services.SaveContextAsync();
 
-                //ctx.Load(ctx.Web);
-                //await ctx.ExecuteQueryAsync();
-
-                //await SimpleCamlQueryAsync(ctx);
-                //await CsomTermSetAsync(ctx);
+                //ctx.Load(ctx.Web, ctx => ctx.Fields);
+                //await AddFieldSpecificListContentType(existedList, ctx.Web.Fields, ctx, new string[] { Constants.AUTHOR_TITLE }, Constants.CSOM_TEST_CONTENT_TYPE, false);
             }
 
             Console.WriteLine($"Press Any Key To Stop!");
@@ -53,11 +53,21 @@ namespace ConsoleCSOM
                 }
             }
         }
+        private static void SetDefaultValueToTaxonomyCities(ClientContext context)
+        {
+            var field = context.Web.Fields.GetByInternalNameOrTitle(Constants.CITIES_FIELD_NAME);
+            TaxonomyField taxonomyField = context.CastTo<TaxonomyField>(field);
+            context.Load(taxonomyField, t => t.TermSetId);
+            context.ExecuteQuery();
+            taxonomyField.TermSetId = new Guid("da9af3b7-d98f-4638-bbfe-cb104bd31337");
+            taxonomyField.UpdateAndPushChanges(true);
+            context.ExecuteQuery();
+        }
         private static async Task SetDefaultValueToTaxonomyTerm(ClientContext context)
         {
             string termLabel = "Default term";
             Guid termId = new Guid("{a8cb8104-8c93-4cbd-8486-bd4d902673b3}");
-            var field = context.Web.Fields.GetByTitle(Constants.CITY);
+            var field = context.Web.Fields.GetByInternalNameOrTitle(Constants.CITY);
 
             TaxonomyField taxonomyField = context.CastTo<TaxonomyField>(field);
             context.Load(taxonomyField, t => t.DefaultValue);
@@ -158,81 +168,33 @@ namespace ConsoleCSOM
             existedList.Update();
         }
 
-        private static async Task SetMyContentTypeAsDefault(ClientContext ctx)
-        {
-            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
-            var currentOrder = existedList.ContentTypes;
-            ctx.Load(currentOrder);
-            await ctx.ExecuteQueryAsync();
-            IList<ContentTypeId> reverseOrder = new List<ContentTypeId>();
-            foreach (var type in currentOrder)
-            {
-                if (type.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE))
-                {
-                    reverseOrder.Add(type.Id);
-                }
-            }
+     
 
-            existedList.RootFolder.UniqueContentTypeOrder = reverseOrder;
-            existedList.RootFolder.Update();
-            existedList.Update();
-        }
-        private static async Task AddAuthorFieldToMyList(ClientContext ctx)
+        private static List GetMyList(ClientContext ctx)
         {
-            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
-            ctx.Load(existedList,e => e.ContentTypes, e => e.Fields);
-            var contentCollection = existedList.ContentTypes;
-            await ctx.ExecuteQueryAsync();
-            var myContentType = contentCollection.Where(x => x.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE)).FirstOrDefault();
-            FieldLinkCreationInformation info = new FieldLinkCreationInformation();
-            info.Field = existedList.Fields.Where(x => x.Title.Equals("Author_")).FirstOrDefault();
-            myContentType.FieldLinks.Add(info);
-            myContentType.Update(false);
-            existedList.Update();
-        }
-        private static async Task AddContentTypeToMyList(ClientContext ctx)
-        {
-            ctx.Load(ctx.Web, w => w.Fields, w => w.ContentTypes);
-            var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
-            var contentCollection = ctx.Web.ContentTypes;
-            await ctx.ExecuteQueryAsync();
-            var myContentType = contentCollection.Where(x => x.Name.Equals(Constants.CSOM_TEST_CONTENT_TYPE)).FirstOrDefault();
-            FieldLinkCreationInformation info = new FieldLinkCreationInformation();
-            info.Field = ctx.Web.Fields.Where(x => x.Title.Equals("about")).FirstOrDefault();
-            myContentType.FieldLinks.Add(info);
-            info = new FieldLinkCreationInformation();
-            info.Field = ctx.Web.Fields.Where(x => x.Title.Equals("city")).FirstOrDefault();
-            myContentType.FieldLinks.Add(info);
-            existedList.ContentTypes.AddExistingContentType(myContentType);
-            myContentType.Update(true);
-            existedList.Update();
+            return ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
         }
 
-        private static async Task CreateCustomContentType(ClientContext ctx)
+     
+
+        private static void CreateCitiesField(ClientContext ctx)
         {
-            var contentCollection = ctx.Web.ContentTypes;
-            ctx.Load(contentCollection);
-            await ctx.ExecuteQueryAsync();
-            var parentType = contentCollection.Where(x => x.Name.Equals("Item")).FirstOrDefault();
-            ContentTypeCreationInformation oContentTypeCreationInformation = new ContentTypeCreationInformation();
+            ctx.Web.Fields.AddFieldAsXml($@"
+<Field
+    Type=""TaxonomyFieldTypeMulti""
+    DisplayName = ""cities""
+    Description = ""cities""
+    Mult = ""TRUE""
+    Required = ""FALSE""
+    EnforceUniqueValues = ""FALSE""
+    Indexed = ""FALSE""
+    MaxLength = ""255""
+    ID = ""{Guid.NewGuid().ToString()}""
+    Name = ""{Constants.CITIES_FIELD_NAME}"" >
+</Field>
 
-            // Name of the new content type
-            oContentTypeCreationInformation.Name = Constants.CSOM_TEST_CONTENT_TYPE;
-
-            // Description of the new content type
-            oContentTypeCreationInformation.Description = "My custom content type created by csom";
-
-            // Name of the group under which the new content type will be creted
-            oContentTypeCreationInformation.Group = "Custom Content Types Group";
-
-            // Specify the parent content type over here
-            oContentTypeCreationInformation.ParentContentType = parentType;
-
-            // Add "ContentTypeCreationInformation" object created above
-            ContentType oContentType = contentCollection.Add(oContentTypeCreationInformation);
-
+                ", true, AddFieldOptions.DefaultValue);
         }
-
         private static void CreateCityField(ClientContext ctx)
         {
             ctx.Web.Fields.AddFieldAsXml($@"
@@ -263,8 +225,8 @@ namespace ConsoleCSOM
   UserSelectionScope = ""0""
   ID = ""{Guid.NewGuid().ToString()}""
   StaticName = ""Author""
-  ShowInEditForm = ""FALSE""
-  ShowInNewForm = ""FALSE""
+  ShowInEditForm = ""TRUE""
+  ShowInNewForm = ""TRUE""
   Name = ""{Constants.AUTHOR_FIELD_NAME}"" >
 </Field> ", true, AddFieldOptions.DefaultValue);
             await ctx.ExecuteQueryAsync();
@@ -310,8 +272,11 @@ namespace ConsoleCSOM
             var info = config.GetSection("SharepointInfo").Get<SharepointInfo>();
             return clientContextHelper.GetContext(new Uri(info.SiteUrl), info.Username, info.Password);
         }
-
-        private static async Task GetFieldTermValue(ClientContext Ctx, string termId)
+        private static TermSetCollection GetTermSetCollection(ClientContext ctx, string termTitle) {
+            TaxonomySession session = TaxonomySession.GetTaxonomySession(ctx);
+            return session.GetTermSetsByName(termTitle, CultureInfo.CurrentCulture.LCID);
+        }
+        private static async Task<Term> GetFieldTermValue(ClientContext Ctx, string termId)
         {
             //load term by id
             TaxonomySession session = TaxonomySession.GetTaxonomySession(Ctx);
@@ -321,6 +286,7 @@ namespace ConsoleCSOM
                                    t => t.Name,
                                    t => t.Id);
             await Ctx.ExecuteQueryAsync();
+            return taxonomyTerm;
         }
 
         private static async Task ExampleSetTaxonomyFieldValue(ListItem item, ClientContext ctx)
