@@ -19,7 +19,10 @@ namespace ConsoleCSOM
         void CreateTermSet(TermGroup group, string setName);
         void CreateTerm(string termName, TermSet terms);
         Task SaveContextAsync();
-        
+        void CreateDocumentList(string name);
+        void SetTermSetToTaxonomyField(ClientContext context, TermSet terms, string fieldName);
+        void SetFieldValueToTaxonomyField(ListItem item, TermCollection collection, ClientContext context, string fieldName);
+        void CreateFolderInDocument(List documents, string folderInternalName, string folderName, string folderUrl);
     }
     public class SharePointServices : ISharePointServices
     {
@@ -28,6 +31,28 @@ namespace ConsoleCSOM
         public SharePointServices(ClientContext context)
         {
             _context = context;
+        }
+
+
+        public void CreateFolderInDocument(List documents, string folderInternalName, string folderName, string folderUrl)
+        {
+            ListItemCreationInformation listItemCreationInformation = new ListItemCreationInformation();
+            listItemCreationInformation.UnderlyingObjectType = FileSystemObjectType.Folder;
+            listItemCreationInformation.LeafName = folderInternalName;
+            listItemCreationInformation.FolderUrl = folderUrl;
+            ListItem listItem = documents.AddItem(listItemCreationInformation);
+            listItem["Title"] = folderName;
+
+            listItem.Update();
+        }
+
+        public void CreateDocumentList(string name)
+        {
+            _context.Web.Lists.Add(new ListCreationInformation()
+            {
+                Title = name,
+                TemplateType = (int)ListTemplateType.DocumentLibrary
+            });
         }
 
         public void CreateList(string name)
@@ -74,6 +99,23 @@ namespace ConsoleCSOM
         public void CreateTerm(string termName, TermSet terms)
         {
             terms.CreateTerm(termName, CultureInfo.CurrentCulture.LCID, Guid.NewGuid());
+        }
+
+        public void SetTermSetToTaxonomyField(ClientContext context, TermSet terms, string fieldName)
+        {
+            var field = context.Web.Fields.GetByInternalNameOrTitle(fieldName);
+            TaxonomyField taxonomyField = context.CastTo<TaxonomyField>(field);
+            taxonomyField.SspId = terms.TermStore.Id;
+            taxonomyField.TermSetId = terms.Id;
+            taxonomyField.UpdateAndPushChanges(true);
+        }
+
+        public void SetFieldValueToTaxonomyField(ListItem item, TermCollection collection, ClientContext context, string fieldName)
+        {
+            var field = context.Web.Fields.GetByInternalNameOrTitle(fieldName);
+            TaxonomyField taxonomyField = context.CastTo<TaxonomyField>(field);
+            taxonomyField.SetFieldValueByTermCollection(item, collection, CultureInfo.CurrentCulture.LCID);
+            taxonomyField.UpdateAndPushChanges(true);
         }
     }
 }
