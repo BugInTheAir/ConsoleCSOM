@@ -21,6 +21,13 @@ namespace ConsoleCSOM
         public static string ABOUT_NAME = "about";
         public static string CITY_NAME = "city";
         public static string AUTHOR_TITLE = "Author_";
+        public static string CITIES_TITLE = "cities";
         public static string CONTENT_TYPE_GROUP = "Custom Content Types Group";
+        public static string MY_DOCUMENT_NAME = "Document Test";
+        public static string FIRST_FOLDER_NAME = "Folder 1";
+        public static string FIRST_FOLDER_INTERNAL_NAME = "Folder_1";
+        public static string SECOND_FOLDER_NAME = "Folder 2";
+        public static string SECOND_FOLDER_INTERNAL_NAME = "Folder_2";
+        public static string STOCKHOLM = "Stockholm";
     }
 }
