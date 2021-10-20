@@ -26,7 +26,7 @@ namespace ConsoleCSOM
             await ctx.ExecuteQueryAsync();
         }
 
-        private static ContentType AddFieldToMyContentType(FieldCollection sourceFieldCollection, ContentTypeCollection contentCollection, string fieldName, string myContentTypeName, bool isContainChild)
+        public ContentType AddFieldToMyContentType(FieldCollection sourceFieldCollection, ContentTypeCollection contentCollection, string fieldName, string myContentTypeName, bool isContainChild)
         {
             var myContentType = contentCollection.Where(x => x.Name.Equals(myContentTypeName)).FirstOrDefault();
             FieldLinkCreationInformation info = new FieldLinkCreationInformation();
@@ -34,6 +34,18 @@ namespace ConsoleCSOM
             myContentType.FieldLinks.Add(info);
             myContentType.Update(isContainChild);
             return myContentType;
+        }
+
+        public async Task AddContentTypeToList(ClientContext ctx, string contentTypeName,string myListTitle)
+        {
+            var existedList = ctx.Web.Lists.GetByTitle(myListTitle);
+            ctx.Load(existedList);
+            ctx.Load(ctx.Web, web => web.ContentTypes);
+            await ctx.ExecuteQueryAsync();
+            var contentType = ctx.Web.ContentTypes.Where(x => x.Name.Equals(contentTypeName)).FirstOrDefault();
+            existedList.ContentTypes.AddExistingContentType(contentType);
+            existedList.Update();
+            await ctx.ExecuteQueryAsync();
         }
 
         public async Task SetMyContentTypeAsDefault(ClientContext ctx, string contentTypeNameToBeTop, List myListToBeSet)
