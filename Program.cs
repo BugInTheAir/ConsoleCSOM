@@ -21,27 +21,90 @@ namespace ConsoleCSOM
                 ContentTypeHelper contentTypeHelper = new ContentTypeHelper();
                 ClientContext ctx = GetContext(clientContextHelper);
                 _services = new SharePointServices(ctx);
-                var myDocument = ctx.Web.Lists.GetByTitle(Constants.MY_DOCUMENT_NAME);
                 var existedList = GetMyList(ctx);
+                ctx.Load(existedList);
                 await ctx.ExecuteQueryAsync();
 
-                var myFolder = myDocument.GetItems(new CamlQuery()
-                {
-                    ViewXml = @" <View Scope =""RecursiveAll""> " +
-                    "<Query>" +
-                    "<Where>" +
-                                "<Eq>" +
-                                    "<FieldRef Name=\"Title\" />" +
-                                    $"<Value Type=\"Text\">{Constants.SECOND_FOLDER_NAME}</Value>" +
-                                 "</Eq>" +
-                    "</Where>" +
-                    "</Query>" +
-                    "</View>"
-                });
-                ctx.Load(myFolder);
-                ctx.ExecuteQuery();
-                ctx.Load(myFolder.FirstOrDefault(), f => f.ParentList, f => f.Folder);
-                ctx.ExecuteQuery();
+                ///1
+                //CreateCSOMTestList(ctx);
+                //await ctx.ExecuteQueryAsync();
+                ///2
+                //await contentTypeHelper.AddContentTypeToList(ctx, Constants.CSOM_TEST_CONTENT_TYPE, Constants.CSOM_TEST);
+                ///3
+                //await contentTypeHelper.SetMyContentTypeAsDefault(ctx, Constants.CSOM_TEST_CONTENT_TYPE,existedList);
+                ///4
+                //await CreateMyItems(ctx);
+                ///5
+                //await SetDefaultValueToMyList(ctx);
+                //await CreateMyItems(ctx);
+                ///7
+                //var list = await MyAboutNotAboutDefault(ctx);
+                ///8
+                //await CreateMyOrderCreatedByDateView(ctx);
+                ///9
+                //await UpdateAboutDefaultValue(ctx);
+                ///11
+                //CreateCitiesField(ctx);
+                /// 12
+                //var myTerm = _services.GetTermSetByName(Constants.MY_TERM_SET_NAME, _services.GetTermGroupByName(Constants.MY_TERM_GROUP));
+                //ctx.Load(myTerm, term => term.Terms, term => term.Id, term => term.Group,term => term.TermStore);
+                //await _services.SaveContextAsync();
+                //_services.SetTermSetToTaxonomyField(ctx, myTerm, Constants.CITIES_FIELD_NAME);
+                //await _services.SaveContextAsync();
+                /// 13
+                //ctx.Load(ctx.Web, web => web.Fields, web => web.ContentTypes);
+                //await _services.SaveContextAsync();
+                //var myContentType = contentTypeHelper.AddFieldToMyContentType(ctx.Web.Fields, ctx.Web.ContentTypes, Constants.CITIES_TITLE, Constants.CSOM_TEST_CONTENT_TYPE, true);
+                //await _services.SaveContextAsync();
+                /// 14
+                //_services.CreateDocumentList(Constants.MY_DOCUMENT_NAME);
+                //await contentTypeHelper.AddContentTypeToList(ctx, Constants.CSOM_TEST_CONTENT_TYPE, Constants.MY_DOCUMENT_NAME);
+                //await _services.SaveContextAsync();
+                //var myDoc = ctx.Web.Lists.GetByTitle(Constants.MY_DOCUMENT_NAME);
+                //ctx.Load(myDoc);
+                //ctx.ExecuteQuery();
+                //await contentTypeHelper.SetMyContentTypeAsDefault(ctx, Constants.CSOM_TEST_CONTENT_TYPE, myDoc);
+                /// 15
+                //var myDoc = ctx.Web.Lists.GetByTitle(Constants.MY_DOCUMENT_NAME);
+                //ctx.Load(myDoc);
+                //ctx.ExecuteQuery();
+                //_services.CreateFolderInDocument(myDoc, Constants.FIRST_FOLDER_INTERNAL_NAME, Constants.FIRST_FOLDER_NAME, "");
+                //var firstFolder = myDoc.GetItems(QueryHelper.GetQueryByTitle(Constants.FIRST_FOLDER_NAME));
+                //ctx.Load(firstFolder);
+                //ctx.ExecuteQuery();
+                //ctx.Load(firstFolder.FirstOrDefault().Folder);
+                //ctx.ExecuteQuery();
+                //_services.CreateFolderInDocument(myDoc, Constants.SECOND_FOLDER_INTERNAL_NAME, Constants.SECOND_FOLDER_NAME, firstFolder.FirstOrDefault().Folder.ServerRelativeUrl);
+                //await _services.SaveContextAsync();
+
+
+
+                //ctx.Load(ctx.Web, ctx => ctx.Fields);
+                //await helper.AddFieldToListContentType(existedList, ctx.Web.Fields, ctx, new string[] { Constants.AUTHOR_TITLE }, Constants.CSOM_TEST_CONTENT_TYPE, false);
+
+
+
+                //var myDocument = ctx.Web.Lists.GetByTitle(Constants.MY_DOCUMENT_NAME);
+                //var existedList = GetMyList(ctx);
+                //await ctx.ExecuteQueryAsync();
+
+                //var myFolder = myDocument.GetItems(new CamlQuery()
+                //{
+                //    ViewXml = @" <View Scope =""RecursiveAll""> " +
+                //    "<Query>" +
+                //    "<Where>" +
+                //                "<Eq>" +
+                //                    "<FieldRef Name=\"Title\" />" +
+                //                    $"<Value Type=\"Text\">{Constants.SECOND_FOLDER_NAME}</Value>" +
+                //                 "</Eq>" +
+                //    "</Where>" +
+                //    "</Query>" +
+                //    "</View>"
+                //});
+                //ctx.Load(myFolder);
+                //ctx.ExecuteQuery();
+                //ctx.Load(myFolder.FirstOrDefault(), f => f.ParentList, f => f.Folder);
+                //ctx.ExecuteQuery();
                 //for (int i = 0; i < 2; i++)
                 //{
                 //    var fileInfo = new FileCreationInformation()
@@ -56,51 +119,39 @@ namespace ConsoleCSOM
                 //        myFolder.FirstOrDefault().ParentList.RootFolder.Update();
                 //        ctx.ExecuteQuery();
                 //        stream.Close();
-                //    }
+                //    }GetTermSetByName(Constants.MY_TERM_SET_NAME, _services.GetTermGroupByName(Constants.MY_TERM_GROUP));
+                //ctx.Load(myTerm, term => term.Terms);
+                //await ctx.ExecuteQueryAsync();
+                //var term = myTerm.Terms.Where(x => x.Name.Equals(Constants.STOCKHOLM)).FirstOrDefault();
+
+                //var files = myFolder.FirstOrDefault().Folder.Files;
+                //ctx.Load(files);
+                //ctx.ExecuteQuery();
+                //for (int i = 0; i < 2; i++)
+                //{
+                //    var addedFile = files.Where(x => x.Name.Equals($"Stockholm-{i}.docx")).FirstOrDefault();
+                //    addedFile.ListItemAllFields["Title"] = "Stockholm title";
+                //    TaxonomyFieldValue[] fields = new TaxonomyFieldValue[1];
+                //    fields[0] = new TaxonomyFieldValue()
+                //    {
+                //        WssId = -1,
+                //        TermGuid = term.Id.ToString(),
+                //        Label = term.Name
+                //    };
+                //    addedFile.ListItemAllFields[Constants.CITIES_FIELD_NAME] = fields;
+                //    addedFile.ListItemAllFields.Update();
+                //}
                 //}
 
-                var myTerm = _services.GetTermSetByName(Constants.MY_TERM_SET_NAME, _services.GetTermGroupByName(Constants.MY_TERM_GROUP));
-                ctx.Load(myTerm, term => term.Terms);
-                await ctx.ExecuteQueryAsync();
-                var term = myTerm.Terms.Where(x => x.Name.Equals(Constants.STOCKHOLM)).FirstOrDefault();
-
-                var files = myFolder.FirstOrDefault().Folder.Files;
-                ctx.Load(files);
+                //var myTerm = _services.
                 ctx.ExecuteQuery();
-                for (int i = 0; i < 2; i++)
-                {
-                    var addedFile = files.Where(x => x.Name.Equals($"Stockholm-{i}.docx")).FirstOrDefault();
-                    addedFile.ListItemAllFields["Title"] = "Test cities";
-                    addedFile.ListItemAllFields[Constants.CITIES_FIELD_NAME] = new TaxonomyFieldValue()
-                    {
-                        WssId = -1,
-                        TermGuid = term.Id.ToString(),
-                        Label = term.Name
-                    };
-                    addedFile.ListItemAllFields.Update();
-                }
-                ctx.ExecuteQuery();
-                /// Create document library
-                //_services.CreateDocumentList(Constants.MY_DOCUMENT_NAME);
-                //await contentTypeHelper.AddContentTypeToList(ctx, Constants.CSOM_TEST_CONTENT_TYPE, Constants.MY_DOCUMENT_NAME);
-                //await _services.SaveContextAsync();
-                //ctx.Load(ctx.Web, ctx => ctx.Fields);
-                //await helper.AddFieldToListContentType(existedList, ctx.Web.Fields, ctx, new string[] { Constants.AUTHOR_TITLE }, Constants.CSOM_TEST_CONTENT_TYPE, false);
 
-                /// Set term to cities taxonomy fields
-                //var myTerm = _services.GetTermSetByName(Constants.MY_TERM_SET_NAME, _services.GetTermGroupByName(Constants.MY_TERM_GROUP));
-                //ctx.Load(myTerm, term => term.Terms, term => term.Id, term => term.Group,term => term.TermStore);
-                //await _services.SaveContextAsync();
-                //_services.SetTermSetToTaxonomyField(ctx, myTerm, Constants.CITIES_FIELD_NAME);
-                //await _services.SaveContextAsync();
 
-                /// Add field to existed content type
-                //ctx.Load(ctx.Web, web => web.Fields, web => web.ContentTypes);
-                //await _services.SaveContextAsync();
-                //var myContentType = contentTypeHelper.AddFieldToMyContentType(ctx.Web.Fields, ctx.Web.ContentTypes, Constants.CITIES_TITLE, Constants.CSOM_TEST_CONTENT_TYPE, true);
-                //await _services.SaveContextAsync();
 
-                /// Create Items With Terms set value
+
+
+
+                //// Add 3 list item and set multiple values to field
                 //var myTerm = _services.GetTermSetByName(Constants.MY_TERM_SET_NAME, _services.GetTermGroupByName(Constants.MY_TERM_GROUP));
                 //ctx.Load(myTerm, term => term.Terms);
                 //await ctx.ExecuteQueryAsync();
@@ -166,12 +217,12 @@ namespace ConsoleCSOM
         private static async Task CreateMyOrderCreatedByDateView(ClientContext ctx)
         {
             var list = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
-            var myQuery = @"<View>
+            var myQuery = @$"<View>
                                 <Query>
                                     <OrderBy><FieldRef Name='Created' Ascending='FALSE'/></OrderBy>
                                     <Where>
                                       <Contains>
-                                          <FieldRef Name='cityInfo' />
+                                          <FieldRef Name='{Constants.CITY}' />
                                           <Value Type='Text'>Ho Chi Minh</Value>
                                       </Contains>
                                     </Where>
@@ -210,6 +261,30 @@ namespace ConsoleCSOM
             return items;
         }
 
+        private static async Task<ListItemCollection> MyAboutNotAboutDefault(ClientContext ctx)
+        {
+            var list = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
+            var items = list.GetItems(new CamlQuery()
+            {
+                ViewXml = @"<View>
+                                <Query>
+                                    <Where>
+                                         <Neq>
+                                            <FieldRef Name=""aboutCT""></FieldRef>
+                                            <Value Type=""Text"">about default</Value>
+                                          </Neq>
+                                  </Where>
+                                </Query>
+                            </View>"
+            });
+            ctx.Load(items);
+            await ctx.ExecuteQueryAsync();
+            return items;
+        }
+
+
+
+
         private static async Task SetDefaultValueToMyList(ClientContext ctx)
         {
             var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
@@ -225,17 +300,21 @@ namespace ConsoleCSOM
             existedList.Update();
         }
 
-        private static async Task CreateMyItems(ClientContext ctx, TermCollection collection)
+        private static async Task CreateMyItems(ClientContext ctx, TermCollection collection = null)
         {
             var existedList = ctx.Web.Lists.GetByTitle(Constants.CSOM_TEST);
             await ctx.ExecuteQueryAsync();
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 5; i++)
             {
                 ListItemCreationInformation oListItemCreationInformation = new ListItemCreationInformation();
                 ListItem oItem = existedList.AddItem(oListItemCreationInformation);
                 var formValues = new List<ListItemFormUpdateValue>();
                 formValues.Add(new ListItemFormUpdateValue() { FieldName = "Title", FieldValue = $"test cities {i}" });
-                _services.SetFieldValueToTaxonomyField(oItem, collection, ctx, Constants.CITIES_FIELD_NAME);
+                formValues.Add(new ListItemFormUpdateValue() { FieldName = Constants.ABOUT, FieldValue = $"test about {i}" });
+                if(collection != null)
+                {
+                    _services.SetFieldValueToTaxonomyField(oItem, collection, ctx, Constants.CITIES_FIELD_NAME);
+                }
                 //formValues.Add(new ListItemFormUpdateValue() { FieldName = "cityInfo", FieldValue = $"city test {i}" });
                 oItem.ValidateUpdateListItem(formValues, true, string.Empty, true, true);
                 oItem.Update();
